@@ -1,12 +1,13 @@
 /**
- * Welcome to Pebble.js!
- *
- * This is where you write your app.
+ * StockMark Market Watcher app
+ Current bugs:
+ Menu must contain 5 companies otherwise it won't work.
  */
 var Settings = require('settings');
 var UI = require('ui');
 var ajax = require('ajax');
 var ticker;
+var menuItems;
 //menu
 var resultsMenu;
 //show opening card
@@ -17,22 +18,16 @@ var splashCard = new UI.Card({
 
 splashCard.show();
 
-//SOMETHING IS WRONG IN PARSEFEED
+
 var parseFeed = function(data,quantity){
   var items = [];
-/*  for(var i=0; i < quantity; i++){
-    //uppercase desc string
-    var title = data[i];
-    
-    //add to menu items array
-    items.push({
-      title: title
-    });
-  }*/
   for (var key in data) {
     if (data.hasOwnProperty(key)) {
       //uppercase desc string
       var title = data[key];
+      if(title === ""){
+        title = "Add another";
+      }
       console.log(title);
       //add to menu items array
       items.push({
@@ -57,23 +52,20 @@ Settings.config(
   /*  ticker = JSON.stringify(e.options.ticker1);
     ticker = ticker.replace(/"/g,""); 
     var URL = "http://dev.markitondemand.com/Api/Quote/json?" + "symbol=" + ticker; */
-    var menuItems = parseFeed(e.options,5); //load menu items 
-    for(var i=0; i<5; i++){ //DEBUG STATEMENT
-      console.log(menuItems[i]);
-    }
-     //construct menu to show to user
+     menuItems = parseFeed(e.options,5); //load menu items 
     resultsMenu = new UI.Menu({
       sections: [{
         title: 'Companies',
         items: menuItems
       }]
     });
-    console.log("menu");
-    splashCard.hide();
-    resultsMenu.show();
-     resultsMenu.on('select', function(e) {
-      ticker = menuItems[e.itemIndex].title; //get clicked ticker
+   
+
+   resultsMenu.on('select', function(e) {
+     
+      ticker = e.item.title; //get clicked ticker
       ticker = ticker.replace(/"/g,""); //remove "" in string
+      if(ticker != "Add another"){
       var URL = "http://dev.markitondemand.com/Api/Quote/json?" + "symbol=" + ticker; 
       //make ajax call to retrieve data
       ajax(
@@ -97,7 +89,6 @@ Settings.config(
             title: name + ", " + "(" + symbol + ")",
             body: "Last Price: " + lastprice + "\n" + "Open Price: " + openprice + "\n" + "Change: " + change + " (" + percentchange + "%)"
           });
-         
           quotecard.show();
         },
         function(error) {
@@ -105,7 +96,22 @@ Settings.config(
           console.log('Failed fetching stock data: ' + error);
         }
       );
+      }
+      else{
+        var instructions = new UI.Card({
+            title: "Add another",
+            body: "Open app configuration to set your companies(maximum 5)."
+        });
+
+        instructions.show();
+      }
     });
+    
+    //construct menu to show to user
+    console.log("menu");
+    resultsMenu.show();
+    splashCard.hide();
+    
     // Show the raw response if parsing failed
     if (e.failed) {
       console.log(e.response);
@@ -113,4 +119,5 @@ Settings.config(
     }
   }
 );
-    
+
+ 
