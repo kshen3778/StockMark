@@ -1,10 +1,12 @@
 /**
  * StockMark Market Watcher app
- TODO: Shake to update
+ * Supported market(s): NASDAQ
  */
 var Settings = require('settings');
 var UI = require('ui');
 var ajax = require('ajax');
+var Vector2 = require('vector2');
+
 var ticker;
 var menuItems;
 //menu
@@ -17,6 +19,8 @@ var splashCard = new UI.Card({
 });
 
 splashCard.show();
+
+var quotecard;
 
 //retrieves data from json
 var parseFeed = function(data){
@@ -53,7 +57,8 @@ Settings.config(
       }]
     });
    
-
+   //Accel.init();
+    
    resultsMenu.on('select', function(e) {
      
       ticker = e.item.title; //get clicked ticker
@@ -94,11 +99,73 @@ Settings.config(
                 percentchange = "+" + percentchange;
               }
               //create the stock quote card
-              var quotecard = new UI.Card({
-                title: name + ", " + "(" + symbol + ")",
+             /* quotecard = new UI.Card({
+                title: name,
                 body: "Last Price: " + lastprice + "\n" + "Open Price: " + openprice + "\n" + "Change: " + change + " (" + percentchange + "%)"
+              });*/
+              quotecard = new UI.Window();
+              // Text element to inform user
+              var text = new UI.Text({
+                position: new Vector2(0, 0),
+                size: new Vector2(144, 168),
+                text: name + "\n" + "Last Price: " + lastprice + "\n" + "Open Price: " + openprice + "\n" + "Change: " + change + " (" + percentchange + "%)",
+                //font:'GOTHIC_16_BOLD',
+                color:'black',
+                textAlign:'center',
+                backgroundColor:'white'
               });
+              quotecard.add(text);
               quotecard.show();
+              
+              //refresh data by clicking select
+              quotecard.on('click','select', function(e){
+                console.log("quotecard refreshed");
+                 ajax(
+                    {
+                      url: URL,
+                      type:'json'
+                    },
+                    function(data) {
+                       //if such ticker doesn't exist
+                        if(data.hasOwnProperty("Message")){ 
+                          var invalid = new UI.Card({
+                          title: "Error loading data",
+                          body: "No symbol matches found. One or more ticker symbols may be invalid."
+                        });
+                        invalid.show();
+                        }
+                        // retrieve data for clicked company
+                        console.log('Successfully fetched stock data!');
+                        //get JSON data key values
+                        name = data.Data.Name;
+                        symbol = data.Data.Symbol;
+                        lastprice = data.Data.LastPrice;
+                        openprice = data.Data.Open;
+                        change = data.Data.Change;
+                        percentchange = data.Data.ChangePercent;
+                        percentchange = +percentchange.toFixed(2); //correct to 2 decimals
+                        change = +change.toFixed(2); //correct to 2 decimals
+                        //put + or - sign in front of change and percentchange
+                        if(change >= 0.00 ){
+                          change = "+" + change;
+                        }
+                        if(percentchange >= 0.00){
+                          percentchange = "+" + percentchange;
+                        }
+                       
+                       // quotecard.body("Last Price: " + lastprice + "\n" + "Open Price: " + openprice + "\n" + "Change: " + change + " (" + percentchange + "%)");
+                        //quotecard.title(name);
+                        text.text(name + "\n" + "Last Price: " + lastprice + "\n" + "Open Price: " + openprice + "\n" + "Change: " + change + " (" + percentchange + "%)");
+                        quotecard.show();
+                      
+                    },
+                    function(error) {
+                      console.log('Download failed: ' + error);
+                    }
+                  );
+                });
+             
+              
             },
             function(error) {
               // Failure!
@@ -111,6 +178,7 @@ Settings.config(
               
             }
           );
+          
       }
       else{ //if user clicked on empty card
         var instructions = new UI.Card({
@@ -130,12 +198,14 @@ Settings.config(
     if (e.failed) {
        console.log("failed to fetch JSON data");
        var failed = new UI.Card({
-            title: "Error processing config data",
+            title: "Error",
             body: "Ensure you have proper internet connection and try restarting the app."
        });
        failed.show();
     }
   }
 );
+
+
 
  
